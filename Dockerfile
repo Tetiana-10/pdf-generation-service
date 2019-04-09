@@ -1,7 +1,7 @@
-FROM openjdk:8-jdk-alpine
-VOLUME /tmp
-ARG DEPENDENCY=target/dependency
-COPY ${DEPENDENCY}/BOOT-INF/lib /app/lib
-COPY ${DEPENDENCY}/META-INF /app/META-INF
-COPY ${DEPENDENCY}/BOOT-INF/classes /app
-ENTRYPOINT ["java","-cp","app:app/lib/*","main.java.hello"]
+FROM java:8-jdk
+COPY ./target/gs-serving-web-content-0.1.0.jar /usr/app/
+COPY ./ /usr/app/
+WORKDIR /usr/app
+RUN  apt-get install -y libfontconfig
+RUN sh -c 'touch gs-serving-web-content-0.1.0.jar'
+ENTRYPOINT ["java","-jar","gs-serving-web-content-0.1.0.jar"]

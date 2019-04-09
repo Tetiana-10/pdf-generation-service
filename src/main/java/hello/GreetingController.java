@@ -60,19 +60,17 @@ public class GreetingController {
 
 	@PostMapping("/")
 	public ResponseEntity<byte[]> generatePdf(@RequestBody String users) throws JRException, IOException {
+		File file = new File("Jasper.pdf");
 		JasperReport jasperReport = JasperCompileManager.compileReport("template.jrxml");
 		JSONObject jsonObj = new JSONObject(users);
-		ByteArrayInputStream jsonDataStream = new ByteArrayInputStream(jsonObj.get("users").toString().getBytes());
+                ByteArrayInputStream jsonDataStream = new ByteArrayInputStream(jsonObj.get("users").toString().getBytes());
 		JsonDataSource ds = new JsonDataSource(jsonDataStream);
-		
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		parameters.put("ReportTitle", "List of Contacts");
 		parameters.put("Author", "Prepared By Tetiana");
-		
 		JasperPrint jasperPrint = JasperFillManager.fillReport(jasperReport, parameters, ds);
 		JasperExportManager.exportReportToPdfFile(jasperPrint, "Jasper.pdf");
 		String filename = "Jasper.pdf";
-		File file = new File("Jasper.pdf");
 		HttpHeaders headers = new HttpHeaders();
 	    headers.setContentType(MediaType.parseMediaType("application/pdf"));
 	    

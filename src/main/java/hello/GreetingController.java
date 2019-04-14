@@ -19,7 +19,6 @@ import org.springframework.web.bind.annotation.RestController;
 import com.amazonaws.metrics.AwsSdkMetrics;
 import com.amazonaws.regions.Regions;
 
-import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import net.sf.jasperreports.engine.JRException;
 import net.sf.jasperreports.engine.JasperCompileManager;
@@ -36,7 +35,7 @@ public class GreetingController {
 		File file = new File("Jasper.pdf");
 
 		SimpleMeterRegistry registry = new SimpleMeterRegistry();
-		registry.gauge("users.current", (int)(Math.random() * 100));
+		registry.gauge("users.current", (int)(Math.random()));
 		
 //      AmazonCloudWatch cw = 
 //			    AmazonCloudWatchClientBuilder.standard().withRegion(Regions.EU_CENTRAL_1).build();

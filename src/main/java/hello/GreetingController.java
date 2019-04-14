@@ -8,6 +8,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.json.JSONObject;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;

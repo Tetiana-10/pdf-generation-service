@@ -6,7 +6,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Properties;
 
 import org.json.JSONObject;
 import org.springframework.http.HttpHeaders;
@@ -19,13 +18,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.amazonaws.metrics.AwsSdkMetrics;
 import com.amazonaws.regions.Regions;
-import com.amazonaws.services.cloudwatch.AmazonCloudWatch;
-import com.amazonaws.services.cloudwatch.AmazonCloudWatchClientBuilder;
-import com.amazonaws.services.cloudwatch.model.MetricDatum;
-import com.amazonaws.services.cloudwatch.model.PutMetricDataRequest;
-import com.amazonaws.services.cloudwatch.model.StandardUnit;
-import com.amazonaws.services.s3.model.Region;
 
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import net.sf.jasperreports.engine.JRException;
 import net.sf.jasperreports.engine.JasperCompileManager;
 import net.sf.jasperreports.engine.JasperExportManager;
@@ -40,11 +35,12 @@ public class GreetingController {
 	public ResponseEntity<byte[]> generatePdf(@RequestBody String users) throws JRException, IOException {
 		File file = new File("Jasper.pdf");
 
+		SimpleMeterRegistry registry = new SimpleMeterRegistry();
+		registry.gauge("users.current", (int)(Math.random() * 100));
+		
 //      AmazonCloudWatch cw = 
 //			    AmazonCloudWatchClientBuilder.standard().withRegion(Regions.EU_CENTRAL_1).build();
-		AwsSdkMetrics.setRegion(Regions.EU_CENTRAL_1);
 		AwsSdkMetrics.enableDefaultMetrics();
-		System.out.println(AwsSdkMetrics.isDefaultMetricsEnabled());
 
 //			MetricDatum datum = new MetricDatum()
 //			    .withMetricName("VISITED")

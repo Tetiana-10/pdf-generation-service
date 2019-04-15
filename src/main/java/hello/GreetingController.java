@@ -8,20 +8,18 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.json.JSONObject;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.amazonaws.metrics.AwsSdkMetrics;
-import com.amazonaws.regions.Regions;
 
-import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import io.micrometer.core.instrument.MeterRegistry;
 import net.sf.jasperreports.engine.JRException;
 import net.sf.jasperreports.engine.JasperCompileManager;
 import net.sf.jasperreports.engine.JasperExportManager;
@@ -31,14 +29,17 @@ import net.sf.jasperreports.engine.JasperReport;
 import net.sf.jasperreports.engine.data.JsonDataSource;
 
 @RestController
+@EnableScheduling
 public class GreetingController {
+	
+	GreetingController(MeterRegistry meterRegistry) {
+	       meterRegistry.gauge("users.current", (int)(Math.random()));
+	    }
+	 
 	@PostMapping("/")
 	public ResponseEntity<byte[]> generatePdf(@RequestBody String users) throws JRException, IOException {
 		File file = new File("Jasper.pdf");
 
-		SimpleMeterRegistry registry = new SimpleMeterRegistry();
-		registry.gauge("users.current", (int)(Math.random()));
-		
 //      AmazonCloudWatch cw = 
 //			    AmazonCloudWatchClientBuilder.standard().withRegion(Regions.EU_CENTRAL_1).build();
 		AwsSdkMetrics.enableDefaultMetrics();
@@ -53,7 +54,7 @@ public class GreetingController {
 //					.withMetricData(datum);
 //			cw.putMetricData(request);
 
-		JasperReport jasperReport = JasperCompileManager.compileReport("template.jrxml");
+		JasperReport jasperReport = JasperCompileManager.compileReport("template1.jrxml");
 		JSONObject jsonObj = new JSONObject(users);
 		ByteArrayInputStream jsonDataStream = new ByteArrayInputStream(jsonObj.get("users").toString().getBytes());
 		JsonDataSource ds = new JsonDataSource(jsonDataStream);

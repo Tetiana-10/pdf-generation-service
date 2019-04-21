@@ -8,6 +8,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -31,7 +33,7 @@ import net.sf.jasperreports.engine.data.JsonDataSource;
 @RestController
 @EnableScheduling
 public class GreetingController {
-	
+	Logger logger = LoggerFactory.getLogger(GreetingController.class);
 	GreetingController(MeterRegistry meterRegistry) {
 	       meterRegistry.gauge("users.current", (int)(Math.random()));
 	    }
@@ -40,6 +42,7 @@ public class GreetingController {
 	public ResponseEntity<byte[]> generatePdf(@RequestBody String users) throws JRException, IOException {
 		File file = new File("Jasper.pdf");
 
+		logger.info("A TRACE Message");
 //      AmazonCloudWatch cw = 
 //			    AmazonCloudWatchClientBuilder.standard().withRegion(Regions.EU_CENTRAL_1).build();
 		AwsSdkMetrics.enableDefaultMetrics();
@@ -54,7 +57,7 @@ public class GreetingController {
 //					.withMetricData(datum);
 //			cw.putMetricData(request);
 
-		JasperReport jasperReport = JasperCompileManager.compileReport("template1.jrxml");
+		JasperReport jasperReport = JasperCompileManager.compileReport("template.jrxml");
 		JSONObject jsonObj = new JSONObject(users);
 		ByteArrayInputStream jsonDataStream = new ByteArrayInputStream(jsonObj.get("users").toString().getBytes());
 		JsonDataSource ds = new JsonDataSource(jsonDataStream);

@@ -34,8 +34,6 @@ import net.sf.jasperreports.engine.data.JsonDataSource;
 
 @RestController
 @EnableScheduling
-@Configuration
-@EnableContextInstanceData
 public class GreetingController {
 	Logger logger = LoggerFactory.getLogger(GreetingController.class);
 	GreetingController(MeterRegistry meterRegistry) {

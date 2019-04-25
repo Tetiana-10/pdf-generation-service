@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.json.JSONObject;
 import org.slf4j.Logger;
@@ -21,7 +22,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.amazonaws.metrics.AwsSdkMetrics;
 
+import io.micrometer.core.annotation.Timed;
+import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import net.sf.jasperreports.engine.JRException;
 import net.sf.jasperreports.engine.JasperCompileManager;
 import net.sf.jasperreports.engine.JasperExportManager;
@@ -33,47 +37,46 @@ import net.sf.jasperreports.engine.data.JsonDataSource;
 @RestController
 @EnableScheduling
 public class GreetingController {
+	
+	private final Counter generatedPdfs;
+	private final Timer timer;
 	Logger logger = LoggerFactory.getLogger(GreetingController.class);
 	GreetingController(MeterRegistry meterRegistry) {
-	       meterRegistry.gauge("users.current", (int)(Math.random()));
+		generatedPdfs = meterRegistry.counter("pdfs.generated");
+		timer = meterRegistry.timer("pdf_generation_time");
 	    }
 	 
 	@PostMapping("/")
+	@Timed
 	public ResponseEntity<byte[]> generatePdf(@RequestBody String users) throws JRException, IOException {
+		long startTime = System.nanoTime();
 		File file = new File("Jasper.pdf");
-
-		logger.info("A TRACE Message");
-//      AmazonCloudWatch cw = 
-//			    AmazonCloudWatchClientBuilder.standard().withRegion(Regions.EU_CENTRAL_1).build();
-		AwsSdkMetrics.enableDefaultMetrics();
-
-//			MetricDatum datum = new MetricDatum()
-//			    .withMetricName("VISITED")
-//			    .withUnit(StandardUnit.None)
-//			    .withValue(50.0);
-//
-//			PutMetricDataRequest request = new PutMetricDataRequest()
-//					.withNamespace("PDFGenerator/TRAFFIC")
-//					.withMetricData(datum);
-//			cw.putMetricData(request);
-
-		JasperReport jasperReport = JasperCompileManager.compileReport("template.jrxml");
-		JSONObject jsonObj = new JSONObject(users);
-		ByteArrayInputStream jsonDataStream = new ByteArrayInputStream(jsonObj.get("users").toString().getBytes());
-		JsonDataSource ds = new JsonDataSource(jsonDataStream);
-		Map<String, Object> parameters = new HashMap<String, Object>();
-		parameters.put("ReportTitle", "List of Contacts");
-		parameters.put("Author", "Prepared By Tetiana");
-		JasperPrint jasperPrint = JasperFillManager.fillReport(jasperReport, parameters, ds);
-		JasperExportManager.exportReportToPdfFile(jasperPrint, "Jasper.pdf");
-		String filename = "Jasper.pdf";
 		HttpHeaders headers = new HttpHeaders();
-		headers.setContentType(MediaType.parseMediaType("application/pdf"));
+		byte[] contents = null;
 
-		headers.setContentDispositionFormData(filename, filename);
-		headers.setCacheControl("must-revalidate, post-check=0, pre-check=0");
-		byte[] contents = (Files.readAllBytes(file.toPath()));
+		try {
+			JasperReport jasperReport = JasperCompileManager.compileReport("template.jrxml");
+			JSONObject jsonObj = new JSONObject(users);
+			ByteArrayInputStream jsonDataStream = new ByteArrayInputStream(jsonObj.get("users").toString().getBytes());
+			JsonDataSource dataSource = new JsonDataSource(jsonDataStream);
+			Map<String, Object> parameters = new HashMap<String, Object>();
+			parameters.put("ReportTitle", "List of Contacts");
+			parameters.put("Author", "Prepared By Tetiana");
+			JasperPrint jasperPrint = JasperFillManager.fillReport(jasperReport, parameters, dataSource);
+			JasperExportManager.exportReportToPdfFile(jasperPrint, "Jasper.pdf");
+			String filename = "Jasper.pdf";
+			
+			headers.setContentType(MediaType.parseMediaType("application/pdf"));
+			headers.setContentDispositionFormData(filename, filename);
+			contents = (Files.readAllBytes(file.toPath()));
+			timer.record(System.nanoTime() - startTime, TimeUnit.NANOSECONDS);
+			generatedPdfs.increment();
+		}catch (Exception e) {
+			logger.error("pdf were not generated: " + e.toString());
+		}
+		
 		ResponseEntity<byte[]> response = new ResponseEntity<>(contents, headers, HttpStatus.OK);
+		logger.info("pdf generated successfully");
 		return response;
 	}
 }

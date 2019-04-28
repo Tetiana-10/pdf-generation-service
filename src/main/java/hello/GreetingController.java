@@ -37,23 +37,23 @@ import net.sf.jasperreports.engine.data.JsonDataSource;
 @RestController
 @EnableScheduling
 public class GreetingController {
-	
+
 	private final Counter generatedPdfs;
-	private final Timer timer;
+	private final Timer pdf_generate_time;
 	Logger logger = LoggerFactory.getLogger(GreetingController.class);
+
 	GreetingController(MeterRegistry meterRegistry) {
 		generatedPdfs = meterRegistry.counter("pdfs.generated");
-		timer = meterRegistry.timer("pdf_generation_time");
-	    }
-	 
+		pdf_generate_time = meterRegistry.timer("pdf.generation.time", "unit", "Microseconds");
+	}
+
 	@PostMapping("/")
 	@Timed
-	public ResponseEntity<byte[]> generatePdf(@RequestBody String users) throws JRException, IOException {
-		long startTime = System.nanoTime();
+	public ResponseEntity<byte[]> generatePdf(@RequestBody String users) {
+		long startTime = System.currentTimeMillis();
 		File file = new File("Jasper.pdf");
 		HttpHeaders headers = new HttpHeaders();
 		byte[] contents = null;
-
 		try {
 			JasperReport jasperReport = JasperCompileManager.compileReport("template.jrxml");
 			JSONObject jsonObj = new JSONObject(users);
@@ -65,18 +65,17 @@ public class GreetingController {
 			JasperPrint jasperPrint = JasperFillManager.fillReport(jasperReport, parameters, dataSource);
 			JasperExportManager.exportReportToPdfFile(jasperPrint, "Jasper.pdf");
 			String filename = "Jasper.pdf";
-			
+
 			headers.setContentType(MediaType.parseMediaType("application/pdf"));
 			headers.setContentDispositionFormData(filename, filename);
 			contents = (Files.readAllBytes(file.toPath()));
-			timer.record(System.nanoTime() - startTime, TimeUnit.NANOSECONDS);
+			pdf_generate_time.record(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS);
 			generatedPdfs.increment();
-		}catch (Exception e) {
-			logger.error("pdf were not generated: " + e.toString());
+		} catch (Exception e) {
+			logger.error("pdf generation status=failed, error=" + e.getMessage());
 		}
-		
+
 		ResponseEntity<byte[]> response = new ResponseEntity<>(contents, headers, HttpStatus.OK);
-		logger.info("pdf generated successfully");
 		return response;
 	}
 }
